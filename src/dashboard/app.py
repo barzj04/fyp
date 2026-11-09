@@ -237,29 +237,39 @@ def predict():
         iso_score  = round(float(iso.decision_function(X_sc)[0]), 4)
         iso_pred   = iso.predict(X_sc)[0]
         
-        # RF directly
-        rf_proba  = rf.predict_proba(X_sc)[0].tolist()
-        rf_pred   = int(rf.predict(X_sc)[0])
-        print(f"RF proba: Normal={round(rf_proba[0]*100,1)}% Degraded={round(rf_proba[1]*100,1)}% Fault={round(rf_proba[2]*100,1)}%")
-        # TEMP FOR FILMING — force Degraded
-        # Remove after filming
-        is_anomaly = bool(rf_pred != 0)
-        label  = LABELS[rf_pred]
+        # Layer 1: Isolation Forest decides if the reading is abnormal.
+        # Layer 2: Random Forest only runs when Layer 1 flags it.
+        rf_full   = rf.predict_proba(X_sc)[0].tolist()
+        is_anomaly = bool(iso_pred == -1)
 
-        # SHAP
-        shap_vals = explainer(X_sc)
-        contribs  = shap_vals.values[0, :, rf_pred].tolist()
-        shap_data = [{"feature": f, "value": round(v, 4)}
-                     for f, v in zip(FEAT_COLS, contribs)]
-        shap_data.sort(key=lambda x: abs(x["value"]), reverse=True)
-        top        = shap_data[0]
-        direction  = "elevated" if top["value"] > 0 else "suppressed"
-        root_cause = f"High {top['feature']} ({direction}) is the primary indicator."
-        human_explanation = generate_human_explanation(label, shap_data, rf_proba)
-        degradation = calc_degradation(rf_proba)
+        if is_anomaly:
+            rf_proba = rf_full
+            rf_pred  = int(np.argmax(rf_full))
+            label    = LABELS[rf_pred]
+            print(f"RF proba: Normal={round(rf_proba[0]*100,1)}% Degraded={round(rf_proba[1]*100,1)}% Fault={round(rf_proba[2]*100,1)}%")
+
+            shap_vals = explainer(X_sc)
+            contribs  = shap_vals.values[0, :, rf_pred].tolist()
+            shap_data = [{"feature": f, "value": round(v, 4)}
+                         for f, v in zip(FEAT_COLS, contribs)]
+            shap_data.sort(key=lambda x: abs(x["value"]), reverse=True)
+            top        = shap_data[0]
+            direction  = "elevated" if top["value"] > 0 else "suppressed"
+            root_cause = f"High {top['feature']} ({direction}) is the primary indicator."
+            human_explanation = generate_human_explanation(label, shap_data, rf_proba)
+        else:
+            rf_pred    = 0
+            rf_proba   = [1.0, 0.0, 0.0]
+            label      = "Normal"
+            shap_data  = []
+            root_cause = "No anomaly detected."
+            human_explanation = generate_human_explanation("Normal", [], [1.0, 0.0, 0.0])
+
+        # Degradation uses the full RF output on every reading
+        degradation = calc_degradation(rf_full)
 
     else:
-        filter_label = 1  # ← change for screenshots: 0=Normal, 1=Degraded, 2=Fault
+        filter_label = None  # demo mode only: set 0=Normal, 1=Degraded, 2=Fault to pin a class
         if filter_label is not None:
             filtered = df_test[df_test['label'] == filter_label]
             row = filtered.iloc[sim_idx % len(filtered)]

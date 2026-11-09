@@ -13,8 +13,9 @@ FEAT = ['rms','peak','kurtosis','skewness','std','crest_factor',
 CLASS_NAMES = ['Normal', 'Degraded', 'Fault']
 
 # ── Change this for each dataset ──────────────────────
-DATASET = "cwru"  # change to "cwru" for CWRU
-CSV     = "data/cwru_features.csv"  # change to cwru_features.csv
+# The saved models are trained on lab data, so keep this as "lab".
+DATASET = "lab"
+CSV     = {"lab": "data/lab_features.csv", "cwru": "data/cwru_features.csv"}[DATASET]
 
 df = pd.read_csv(CSV)
 X  = scaler.transform(df[FEAT].values)

@@ -5,10 +5,14 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
 
+# 'lab' = deployed models (trained on lab data). 'cwru' = old benchmark data.
+DATASET = 'lab'
+CSV = {'lab': 'data/lab_features.csv', 'cwru': 'data/cwru_features.csv'}[DATASET]
+
 rf     = joblib.load('models/rf_model.pkl')
 iso    = joblib.load('models/iso_forest.pkl')
 scaler = joblib.load('models/scaler.pkl')
-df     = pd.read_csv('data/cwru_features.csv')
+df     = pd.read_csv(CSV)
 
 FEAT = ['rms','peak','kurtosis','skewness','std','crest_factor',
         'dom_freq','spec_centroid','spec_energy','band_low','band_mid']
@@ -33,7 +37,7 @@ for i in range(len(X_test)):
 
 final_preds = np.array(final_preds)
 
-print("=== END-TO-END TWO-LAYER PIPELINE RESULTS ===")
+print(f"=== END-TO-END TWO-LAYER PIPELINE RESULTS ({DATASET} data) ===")
 print(classification_report(y_test, final_preds,
       target_names=['Normal','Degraded','Fault']))
 print("Confusion Matrix:")

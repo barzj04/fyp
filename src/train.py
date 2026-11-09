@@ -24,15 +24,15 @@ df = pd.read_csv(INPUT_CSV)
 X  = df[FEAT_COLS].values
 y  = df["label"].values
 
-# ── Scale ──────────────────────────────────────────────
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
-joblib.dump(scaler, MODEL_DIR + "scaler.pkl")
-print("✅ Scaler saved")
+# ── Train/test split FIRST, then scale (fit on training data only) ──
+X_train_raw, X_test_raw, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=42, stratify=y)
 
-# ── Train/test split ───────────────────────────────────
-X_train, X_test, y_train, y_test = train_test_split(
-    X_scaled, y, test_size=0.3, random_state=42, stratify=y)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train_raw)
+X_test  = scaler.transform(X_test_raw)
+joblib.dump(scaler, MODEL_DIR + "scaler.pkl")
+print("✅ Scaler saved (fitted on training data only)")
 
 # ── SMOTE on training set only ─────────────────────────
 smote = SMOTE(random_state=42)
@@ -103,16 +103,16 @@ print(confusion_matrix(y_test, rf.predict(X_test)))
 
 # ── Train Isolation Forest on Normal only ──────────────
 print("\nTraining Isolation Forest on Normal data only...")
-X_normal = X_scaled[y == 0]
+X_normal = X_train[y_train == 0]  # training Normal windows only
 iso = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
 iso.fit(X_normal)
 joblib.dump(iso, MODEL_DIR + "iso_forest.pkl")
 
 # Quick IF evaluation
-scores = iso.decision_function(X_scaled)
-preds  = iso.predict(X_scaled)   # 1=normal, -1=anomaly
+scores = iso.decision_function(X_test)
+preds  = iso.predict(X_test)   # 1=normal, -1=anomaly
 anomaly_detected = (preds == -1)
-actual_fault     = (y != 0)
+actual_fault     = (y_test != 0)
 
 tp  = np.sum(anomaly_detected & actual_fault)
 fp  = np.sum(anomaly_detected & ~actual_fault)

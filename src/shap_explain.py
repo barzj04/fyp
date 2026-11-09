@@ -9,10 +9,14 @@ import os
 FEAT_COLS = ["rms","peak","kurtosis","skewness","std","crest_factor","dom_freq","spec_centroid","spec_energy","band_low","band_mid"]
 LABELS    = {0: "Normal", 1: "Degraded", 2: "Fault"}
 
+# 'lab' = deployed models (trained on lab data). 'cwru' = old benchmark data.
+DATASET = "lab"
+CSV = {"lab": "data/lab_features.csv", "cwru": "data/cwru_features.csv"}[DATASET]
+
 # ── Load models + data ─────────────────────────────────
 rf     = joblib.load("models/rf_model.pkl")
 scaler = joblib.load("models/scaler.pkl")
-df     = pd.read_csv("data/cwru_features.csv")
+df     = pd.read_csv(CSV)
 
 X = scaler.transform(df[FEAT_COLS].values)
 y = df["label"].values
