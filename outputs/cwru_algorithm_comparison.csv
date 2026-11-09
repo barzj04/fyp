@@ -1,0 +1,6 @@
+Algorithm,Accuracy(%),F1_weighted,Time(s)
+Random Forest,99.93,0.9993,0.95
+kNN (k=5),99.93,0.9993,0.01
+SVM (RBF),99.65,0.9965,0.22
+Naive Bayes,99.51,0.9951,0.0
+Decision Tree,99.86,0.9986,0.03

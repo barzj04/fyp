@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PdM Monitor — O&G Equipment</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #F3F4F6; color: #111; min-height: 100vh; }
+
+/* ── TOP BAR ── */
+.topbar { background: #fff; border-bottom: 1px solid #E5E7EB; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.dot-live { width: 9px; height: 9px; border-radius: 50%; background: #22C55E; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.topbar-title { font-size: 16px; font-weight: 700; }
+.topbar-sub { font-size: 12px; color: #9CA3AF; }
+.topbar-right { display: flex; align-items: center; gap: 16px; font-size: 12px; color: #9CA3AF; }
+.topbar-right span { display: flex; align-items: center; gap: 4px; }
+
+/* ── TOGGLE ── */
+.toggle-wrap { display: flex; background: #F3F4F6; border-radius: 8px; padding: 3px; gap: 3px; }
+.tog-btn { padding: 7px 18px; border-radius: 6px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; background: transparent; color: #9CA3AF; transition: all 0.2s; }
+.tog-btn.active { background: #fff; color: #111; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+.tog-btn:hover:not(.active) { color: #6B7280; }
+
+/* ── LAYOUT ── */
+.container { max-width: 1200px; margin: 0 auto; padding: 16px 24px; }
+.view { display: none; flex-direction: column; gap: 12px; }
+.view.active { display: flex; }
+
+/* ── CARDS ── */
+.card { background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #E5E7EB; }
+.card-label { font-size: 11px; color: #9CA3AF; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; font-weight: 600; }
+.card-value { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.card-sub { font-size: 12px; color: #9CA3AF; margin-top: 4px; }
+.section-title { font-size: 13px; font-weight: 700; color: #111; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+.section-title svg { width: 16px; height: 16px; color: #9CA3AF; }
+
+/* ── OPERATOR VIEW ── */
+.op-health { background: #fff; border-radius: 12px; border: 2px solid #EF4444; padding: 24px; display: flex; align-items: center; gap: 20px; }
+.op-health.normal { border-color: #22C55E; }
+.op-health.degraded { border-color: #F59E0B; }
+.op-icon { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; flex-shrink: 0; }
+.op-icon.fault { background: #FEE2E2; color: #DC2626; }
+.op-icon.normal { background: #DCFCE7; color: #16A34A; }
+.op-icon.degraded { background: #FEF3C7; color: #D97706; }
+.op-status { font-size: 28px; font-weight: 700; line-height: 1.1; }
+.op-status.fault { color: #DC2626; }
+.op-action { font-size: 13px; color: #6B7280; margin-top: 6px; line-height: 1.4; }
+.op-conf { margin-left: auto; text-align: right; }
+.op-conf-label { font-size: 11px; color: #9CA3AF; margin-bottom: 2px; }
+.op-conf-num { font-size: 32px; font-weight: 700; color: #DC2626; }
+.op-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.op-metric { background: #fff; border-radius: 12px; padding: 16px 20px; border: 1px solid #E5E7EB; }
+.op-metric-val { font-size: 22px; font-weight: 700; color: #111; }
+.op-metric-val.sm { font-size: 16px; padding-top: 4px; }
+.advice-box { background: #FEF2F2; border-left: 4px solid #EF4444; border-radius: 0 10px 10px 0; padding: 16px 20px; font-size: 13px; color: #374151; line-height: 1.7; }
+.advice-box strong { font-weight: 700; color: #DC2626; }
+
+/* simple alert list */
+.op-alert { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #F3F4F6; }
+.op-alert:last-child { border-bottom: none; }
+.op-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.op-alert-text { font-size: 13px; color: #374151; flex: 1; }
+.op-alert-time { font-size: 11px; color: #D1D5DB; }
+
+/* ── ENGINEER VIEW ── */
+.eng-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.3fr; gap: 12px; }
+.eng-mid { display: grid; grid-template-columns: 1.7fr 1fr; gap: 12px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.pill-fault { background: #FEE2E2; color: #DC2626; }
+.pill-dot { width: 7px; height: 7px; border-radius: 50%; background: #EF4444; }
+.model-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: #F3F4F6; color: #9CA3AF; margin-right: 4px; }
+.ax { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.ax-x { background: #DBEAFE; color: #1D4ED8; }
+.ax-y { background: #DCFCE7; color: #15803D; }
+.ax-z { background: #FEF3C7; color: #A16207; }
+.chart-area { position: relative; height: 180px; }
+.legend { display: flex; gap: 14px; margin-top: 8px; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #9CA3AF; }
+.leg-dot { width: 12px; height: 3px; border-radius: 2px; }
+
+/* SHAP bars */
+.shap-wrap { margin-bottom: 8px; }
+.shap-label { display: flex; justify-content: space-between; font-size: 12px; color: #6B7280; margin-bottom: 3px; }
+.shap-track { height: 8px; background: #F3F4F6; border-radius: 4px; overflow: hidden; }
+.shap-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
+.shap-pos { background: #EF4444; }
+.shap-neg { background: #3B82F6; }
+.shap-note { margin-top: 14px; padding: 10px 12px; background: #FEF2F2; border-radius: 8px; font-size: 12px; color: #6B7280; line-height: 1.6; border-left: 3px solid #EF4444; }
+
+/* detailed alerts */
+.alert-row { display: flex; align-items: flex-start; gap: 12px; padding: 10px 0; border-bottom: 1px solid #F3F4F6; }
+.alert-row:last-child { border-bottom: none; }
+.alert-icon { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+.ai-f { background: #FEE2E2; color: #DC2626; }
+.ai-d { background: #FEF3C7; color: #D97706; }
+.ai-n { background: #DCFCE7; color: #16A34A; }
+.alert-body { flex: 1; min-width: 0; }
+.alert-title { font-size: 13px; font-weight: 600; color: #374151; }
+.alert-desc { font-size: 12px; color: #9CA3AF; margin-top: 2px; line-height: 1.4; }
+.alert-time { font-size: 11px; color: #D1D5DB; flex-shrink: 0; margin-top: 2px; }
+.conf-bar { height: 4px; background: #F3F4F6; border-radius: 2px; overflow: hidden; margin-top: 5px; }
+.conf-fill { height: 100%; border-radius: 2px; }
+
+.export-btn { font-size: 12px; color: #9CA3AF; margin-left: auto; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.export-btn:hover { color: #6B7280; }
+
+/* count badges */
+.count-badge { display: flex; gap: 10px; margin-top: 8px; }
+.count-badge span { font-size: 12px; display: flex; align-items: center; gap: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ══ TOP BAR ══ -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="dot-live"></div>
+    <div>
+      <div class="topbar-title">PdM Monitor — O&G Equipment</div>
+      <div class="topbar-sub">Lathe Machine · ESP32 + MPU-6050 · MQTT fyp/vibration</div>
+    </div>
+  </div>
+  <div class="toggle-wrap">
+    <button class="tog-btn active" id="btn-op" onclick="switchView('op')">👷 Operator</button>
+    <button class="tog-btn" id="btn-eng" onclick="switchView('eng')">🔧 Engineer</button>
+  </div>
+  <div class="topbar-right">
+    <span id="clock">14:32:07</span>
+    <span>📡 100 Hz</span>
+    <span>🌐 localhost:5000</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- ══ OPERATOR VIEW ══ -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="view active" id="view-op">
+
+    <div class="op-health fault">
+      <div class="op-icon fault">⚠️</div>
+      <div>
+        <div class="op-status fault">Fault detected</div>
+        <div class="op-action">Stop machine and notify maintenance engineer immediately</div>
+      </div>
+      <div class="op-conf">
+        <div class="op-conf-label">Confidence</div>
+        <div class="op-conf-num">93%</div>
+      </div>
+    </div>
+
+    <div class="op-grid">
+      <div class="op-metric">
+        <div class="card-label">Fault type</div>
+        <div class="op-metric-val sm">Bearing outer race</div>
+        <div class="card-sub">Rotating machinery</div>
+      </div>
+      <div class="op-metric">
+        <div class="card-label">Alerts today</div>
+        <div class="op-metric-val">7</div>
+        <div class="card-sub">4 fault · 3 degraded</div>
+      </div>
+      <div class="op-metric">
+        <div class="card-label">Last normal reading</div>
+        <div class="op-metric-val sm">13:58:04</div>
+        <div class="card-sub">34 min ago</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">ℹ️ Recommended action</div>
+      <div class="advice-box">
+        A bearing outer race fault has been detected with high confidence. <strong>Do not continue operating the machine.</strong> Tag the equipment as out of service and contact the maintenance engineer. Log this alert using the export button below.
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔔 Recent alerts <span class="export-btn">⬇️ Export CSV</span></div>
+      <div class="op-alert"><div class="op-dot" style="background:#EF4444"></div><div class="op-alert-text">Fault — bearing outer race</div><div class="op-alert-time">14:32:07</div></div>
+      <div class="op-alert"><div class="op-dot" style="background:#EF4444"></div><div class="op-alert-text">Fault — bearing outer race</div><div class="op-alert-time">14:28:51</div></div>
+      <div class="op-alert"><div class="op-dot" style="background:#F59E0B"></div><div class="op-alert-text">Degraded — shaft misalignment</div><div class="op-alert-time">14:15:33</div></div>
+      <div class="op-alert"><div class="op-dot" style="background:#F59E0B"></div><div class="op-alert-text">Degraded — rotor imbalance</div><div class="op-alert-time">14:03:12</div></div>
+      <div class="op-alert"><div class="op-dot" style="background:#22C55E"></div><div class="op-alert-text">Normal — system stable</div><div class="op-alert-time">13:58:04</div></div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════ -->
+  <!-- ══ ENGINEER VIEW ══ -->
+  <!-- ══════════════════════════════════════════ -->
+  <div class="view" id="view-eng">
+
+    <div class="eng-row">
+      <div class="card">
+        <div class="card-label">Equipment health</div>
+        <div style="margin:6px 0;"><span class="pill pill-fault"><span class="pill-dot"></span>Fault</span></div>
+        <div class="card-sub">RF classifier · 93.2% conf.</div>
+      </div>
+      <div class="card">
+        <div class="card-label">IF anomaly score</div>
+        <div class="card-value" style="color:#DC2626;">−0.41</div>
+        <div class="card-sub">Threshold −0.15</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Fault class</div>
+        <div class="card-value" style="font-size:17px; padding-top:6px;">Bearing outer race</div>
+        <div class="card-sub" style="margin-top:8px;"><span class="model-badge">IF layer 1</span><span class="model-badge">RF layer 2</span></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Session alerts</div>
+        <div style="display:flex;align-items:baseline;gap:8px;"><div class="card-value">7</div><div class="card-sub">this session</div></div>
+        <div class="count-badge">
+          <span style="color:#DC2626;">● 4 fault</span>
+          <span style="color:#D97706;">● 3 degraded</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="eng-mid">
+      <div class="card">
+        <div class="section-title">
+          📈 Real-time vibration waveform
+          <span style="margin-left:auto;display:flex;gap:5px;">
+            <span class="ax ax-x">X</span><span class="ax ax-y">Y</span><span class="ax ax-z">Z</span>
+          </span>
+        </div>
+        <div style="font-size:11px;color:#D1D5DB;margin-bottom:8px;">Rolling 10 s window · 100 Hz · g (m/s²)</div>
+        <div class="chart-area"><canvas id="waveChart"></canvas></div>
+        <div class="legend">
+          <div class="leg"><div class="leg-dot" style="background:#3B82F6"></div>Accel X</div>
+          <div class="leg"><div class="leg-dot" style="background:#22C55E"></div>Accel Y</div>
+          <div class="leg"><div class="leg-dot" style="background:#F59E0B"></div>Accel Z</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="section-title">🔍 SHAP explanations</div>
+        <div style="font-size:11px;color:#D1D5DB;margin-bottom:10px;">Current prediction · top 5 features</div>
+        <div class="shap-wrap"><div class="shap-label"><span>Z-axis kurtosis</span><span style="color:#DC2626;">+0.38</span></div><div class="shap-track"><div class="shap-fill shap-pos" style="width:95%"></div></div></div>
+        <div class="shap-wrap"><div class="shap-label"><span>Z-axis RMS</span><span style="color:#DC2626;">+0.27</span></div><div class="shap-track"><div class="shap-fill shap-pos" style="width:68%"></div></div></div>
+        <div class="shap-wrap"><div class="shap-label"><span>Z-axis peak</span><span style="color:#DC2626;">+0.19</span></div><div class="shap-track"><div class="shap-fill shap-pos" style="width:48%"></div></div></div>
+        <div class="shap-wrap"><div class="shap-label"><span>X-axis skewness</span><span style="color:#3B82F6;">−0.11</span></div><div class="shap-track"><div class="shap-fill shap-neg" style="width:28%"></div></div></div>
+        <div class="shap-wrap"><div class="shap-label"><span>Y-axis std dev</span><span style="color:#3B82F6;">−0.07</span></div><div class="shap-track"><div class="shap-fill shap-neg" style="width:18%"></div></div></div>
+        <div class="shap-note">Elevated Z-axis kurtosis indicates impulsive bearing impacts consistent with an outer race fault. Immediate inspection recommended.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="section-title">🔔 Alert log <span style="font-weight:400;font-size:11px;color:#D1D5DB;">— full diagnostic detail</span><span class="export-btn">⬇️ Export CSV</span></div>
+      <div class="alert-row">
+        <div class="alert-icon ai-f">⚠</div>
+        <div class="alert-body"><div class="alert-title">Fault — bearing outer race</div><div class="alert-desc">Top SHAP: Z-axis kurtosis (+0.38) · RF 93.2% · IF score −0.41</div><div class="conf-bar"><div class="conf-fill" style="width:93%;background:#EF4444;"></div></div></div>
+        <div class="alert-time">14:32:07</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-icon ai-f">⚠</div>
+        <div class="alert-body"><div class="alert-title">Fault — bearing outer race</div><div class="alert-desc">Top SHAP: Z-axis kurtosis (+0.35) · RF 91.7% · IF score −0.39</div><div class="conf-bar"><div class="conf-fill" style="width:91%;background:#EF4444;"></div></div></div>
+        <div class="alert-time">14:28:51</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-icon ai-d">⚠</div>
+        <div class="alert-body"><div class="alert-title">Degraded — shaft misalignment</div><div class="alert-desc">Top SHAP: X-axis RMS (+0.22) · RF 78.4% · IF score −0.21</div><div class="conf-bar"><div class="conf-fill" style="width:78%;background:#F59E0B;"></div></div></div>
+        <div class="alert-time">14:15:33</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-icon ai-d">⚠</div>
+        <div class="alert-body"><div class="alert-title">Degraded — rotor imbalance</div><div class="alert-desc">Top SHAP: Y-axis std dev (+0.18) · RF 74.1% · IF score −0.19</div><div class="conf-bar"><div class="conf-fill" style="width:74%;background:#F59E0B;"></div></div></div>
+        <div class="alert-time">14:03:12</div>
+      </div>
+      <div class="alert-row">
+        <div class="alert-icon ai-n">✓</div>
+        <div class="alert-body"><div class="alert-title">Normal — system stable</div><div class="alert-desc">No anomaly detected · IF score +0.08 · monitoring continues</div><div class="conf-bar"><div class="conf-fill" style="width:100%;background:#22C55E;"></div></div></div>
+        <div class="alert-time">13:58:04</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── VIEW TOGGLE ──
+function switchView(v) {
+  document.getElementById('view-op').classList.toggle('active', v === 'op');
+  document.getElementById('view-eng').classList.toggle('active', v === 'eng');
+  document.getElementById('btn-op').classList.toggle('active', v === 'op');
+  document.getElementById('btn-eng').classList.toggle('active', v === 'eng');
+}
+
+// ── LIVE CLOCK ──
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toTimeString().split(' ')[0];
+}
+setInterval(updateClock, 1000);
+
+// ── WAVEFORM CHART ──
+function genWave(base, amp, noise, fault) {
+  return Array.from({ length: 50 }, (_, i) => {
+    let v = base + amp * Math.sin(i * 0.4) + (Math.random() - 0.5) * noise;
+    return fault ? v + (Math.random() < 0.15 ? (Math.random() - 0.5) * 2.5 : 0) : v;
+  });
+}
+
+const labels = Array.from({ length: 50 }, (_, i) => (i * 0.2).toFixed(1) + 's');
+
+const ctx = document.getElementById('waveChart').getContext('2d');
+const waveChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Accel X', data: genWave(0.1, 0.4, 0.15, true), borderColor: '#3B82F6', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false },
+      { label: 'Accel Y', data: genWave(-0.05, 0.3, 0.1, false), borderColor: '#22C55E', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false },
+      { label: 'Accel Z', data: genWave(0.2, 0.8, 0.3, true), borderColor: '#F59E0B', borderWidth: 1.5, pointRadius: 0, tension: 0.3, fill: false },
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { maxTicksLimit: 6, font: { size: 10 }, color: '#D1D5DB' }, grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false } },
+      y: { ticks: { font: { size: 10 }, color: '#D1D5DB' }, grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, title: { display: true, text: 'g (m/s²)', font: { size: 10 }, color: '#D1D5DB' } }
+    }
+  }
+});
+
+// Live update
+setInterval(() => {
+  waveChart.data.datasets[0].data = genWave(0.1, 0.4, 0.15, true);
+  waveChart.data.datasets[1].data = genWave(-0.05, 0.3, 0.1, false);
+  waveChart.data.datasets[2].data = genWave(0.2, 0.8, 0.3, true);
+  waveChart.update('none');
+}, 800);
+</script>
+
+</body>
+</html>

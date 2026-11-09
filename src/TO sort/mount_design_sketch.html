@@ -1,0 +1,132 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mount sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f1e4;
+    --line:#4a4237;
+    --line-soft:#a89a7d;
+    --red:#b5482f;
+    --panel-border:#d8cdb0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#2b2820; --line:#e9e0cc; --line-soft:#7a715c; --red:#ff8f6b; --panel-border:#453f31;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#2b2820; --line:#e9e0cc; --line-soft:#7a715c; --red:#ff8f6b; --panel-border:#453f31;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding-block: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+    padding-inline:16px;
+    background:var(--paper);
+    display:flex; justify-content:center;
+    font-family:'Patrick Hand', cursive;
+  }
+  figure{
+    margin:0; max-width:880px; width:100%;
+    border:2px solid var(--panel-border);
+    border-radius:4px;
+    padding:22px 22px 16px;
+    background:
+      repeating-linear-gradient(var(--paper) 0px, var(--paper) 33px, color-mix(in srgb, var(--line-soft) 22%, transparent) 34px);
+  }
+  h1{
+    font-family:'Caveat', cursive;
+    font-size:30px; font-weight:600; color:var(--line);
+    margin:0 0 2px; transform: rotate(-0.6deg);
+  }
+  .sub{ font-size:16px; color:var(--line-soft); margin:0 0 10px; }
+  svg{ display:block; width:100%; height:auto; }
+  figcaption{
+    font-size:16px; line-height:1.5; color:var(--line);
+    margin-top:6px; padding-top:8px;
+  }
+  text{ font-family:'Patrick Hand', cursive; fill:var(--line); }
+  .note{ fill:var(--red); }
+  .sketch{ fill:none; stroke:var(--line); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .sketch2{ fill:none; stroke:var(--line); stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round; opacity:0.55; }
+  .hatch{ stroke:var(--line-soft); stroke-width:1; }
+</style>
+</head>
+<body>
+<figure>
+  <h1>weight mount &mdash; standoff sketch</h1>
+  <p class="sub">shaft collar + bolt + weight, all bolted, no tape in the load path</p>
+
+  <svg viewBox="0 0 900 480" role="img" aria-label="Hand sketch of a rod with a shaft collar clamped on, a bolt threaded into the collar as a standoff, and a fishing weight secured on the bolt end with a nut, positioned clear of the chuck jaws.">
+
+    <!-- spindle axis, hand-drawn dashed -->
+    <path class="sketch2" d="M40,240 L120,238 L210,241 L300,239 L420,240" stroke-dasharray="6 6"/>
+    <path class="sketch2" d="M420,240 L520,241 L620,239 L720,240 L820,238" stroke-dasharray="6 6"/>
+    <text x="55" y="220" font-size="15">spindle axis</text>
+
+    <!-- chuck block (rough rect) -->
+    <path class="sketch" d="M55,150 C50,150 48,155 48,160 L46,320 C46,326 50,330 56,330 L175,332 C182,332 186,327 186,320 L188,158 C188,152 183,148 177,149 Z"/>
+    <path class="sketch2" d="M58,152 L182,151 M56,328 L184,330"/>
+    <text x="70" y="245" font-size="16">chuck</text>
+
+    <!-- jaw ticks -->
+    <path class="sketch" d="M188,175 L212,182"/>
+    <path class="sketch" d="M188,240 L214,240"/>
+    <path class="sketch" d="M188,300 L210,294"/>
+
+    <!-- rod -->
+    <path class="sketch" d="M188,222 C260,218 340,220 430,219 C480,218 500,220 520,222 L520,258 C500,260 480,262 430,261 C340,260 260,262 188,258 Z"/>
+    <text x="300" y="200" font-size="15">rod</text>
+
+    <!-- shaft collar around rod -->
+    <path class="sketch" d="M540,200 C555,198 566,205 566,240 C566,275 555,282 540,280 C525,282 514,275 514,240 C514,205 525,198 540,200 Z"/>
+    <path class="hatch" d="M520,205 L560,275 M528,200 L566,268 M514,222 L548,282" stroke-width="1"/>
+    <!-- set screw -->
+    <path class="sketch" d="M540,199 L540,182"/>
+    <path class="sketch2" d="M534,182 L546,182"/>
+    <text x="600" y="175" font-size="15">shaft collar</text>
+    <text x="600" y="195" font-size="14" fill="var(--line-soft)">(clamps on &mdash; set screw,</text>
+    <text x="600" y="213" font-size="14" fill="var(--line-soft)">no drilling into rod)</text>
+
+    <!-- bolt standoff -->
+    <path class="sketch" d="M566,235 L695,225 L697,238 L568,248 Z"/>
+    <path class="sketch2" d="M580,230 L580,244 M610,228 L610,243 M640,227 L640,242 M670,226 L670,240"/>
+    <text x="600" y="290" font-size="15">bolt, threaded into collar</text>
+    <text x="600" y="308" font-size="14" fill="var(--line-soft)">(solid metal standoff)</text>
+
+    <!-- weight on end -->
+    <path class="sketch" d="M695,205 C715,203 730,212 730,232 C730,252 715,261 695,259 C688,240 688,222 695,205 Z"/>
+    <path class="hatch" d="M700,210 L724,252 M710,206 L730,240"/>
+    <!-- nut -->
+    <path class="sketch" d="M690,222 L706,220 L708,244 L692,246 Z"/>
+    <text x="745" y="200" font-size="15">fishing weight</text>
+    <text x="745" y="218" font-size="14" fill="var(--line-soft)">(own hole + nut,</text>
+    <text x="745" y="236" font-size="14" fill="var(--line-soft)">no tape here)</text>
+
+    <!-- radius arrow -->
+    <path class="sketch" d="M540,240 L710,232" stroke-dasharray="2 5"/>
+    <text x="600" y="355" class="note" font-size="18" transform="rotate(-1 600 355)">r &larr; measured out here, not flush on the rod</text>
+
+    <!-- rotation arrow -->
+    <path class="sketch" d="M560,150 C590,130 630,132 655,155" marker-end="none"/>
+    <path class="sketch" d="M648,148 L655,155 L646,160"/>
+    <text x="560" y="120" font-size="15">spins this way</text>
+
+    <!-- handwritten margin note -->
+    <text x="60" y="420" class="note" font-size="20" transform="rotate(-1 60 420)">clear of jaws &amp; guard,</text>
+    <text x="60" y="445" class="note" font-size="20" transform="rotate(-1 60 445)">keep r modest!</text>
+
+  </svg>
+
+  <figcaption>
+    Rough sketch of the mount: a shaft collar clamps onto the rod with its own set screw (no drilling), a bolt threads into the collar as a rigid standoff, and the fishing weight goes on the bolt's end secured with a nut through its own factory hole &mdash; metal-to-metal the whole way out, no tape carrying any load.
+  </figcaption>
+</figure>
+</body>
+</html>

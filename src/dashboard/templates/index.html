@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PdM Dashboard: FYP Arleen</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="navbar">
+    <span class="nav-title">⚙ Predictive Maintenance Monitor: Oil & Gas Equipment</span>
+    <div class="toggle-group">
+    <button class="tbtn active" id="btn-operator" onclick="setView('operator')">Overview</button>
+    <button class="tbtn" id="btn-engineer" onclick="setView('engineer')">Technical</button>
+  </div>
+</nav>
+
+<!-- OPERATOR VIEW -->
+<div id="view-operator" class="view-panel">
+  <div class="container">
+    <div class="status-banner" id="status-banner">
+      <div class="status-icon" id="status-icon">✓</div>
+      <div class="status-content">
+        <div class="status-title" id="status-title">Normal</div>
+        <div class="status-msg" id="status-msg">Equipment operating normally.</div>
+        <div class="action-box" id="action-box">No action required.</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="degr-head">
+        <div class="card-title">Equipment Degradation</div>
+        <div class="degr-val" id="degr-val">0%</div>
+      </div>
+      <div class="degr-track">
+        <div class="degr-fill" id="degr-fill"></div>
+      </div>
+      <div class="degr-scale">
+        <span>0% Healthy</span><span>50% Degraded</span><span>100% Fault</span>
+      </div>
+      <div id="deg-warning-banner" style="display:none;margin-top:8px;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;"></div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-val" id="m-severity">LOW</div>
+        <div class="metric-lbl">Alert Severity</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-alerts">0</div>
+        <div class="metric-lbl">Alerts Today</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-time">--:--:--</div>
+        <div class="metric-lbl">Last Updated</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-status">
+          <span style="width:8px;height:8px;background:#1D9E75;border-radius:50%;display:inline-block;margin-right:6px;"></span>Live
+        </div>
+        <div class="metric-lbl">System Status</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-val" id="m-latency">--</div>
+        <div class="metric-lbl">Latency (ms)</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Alert History</div>
+      <div id="alert-log-op"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ENGINEER VIEW -->
+<div id="view-engineer" class="view-panel" style="display:none">
+  <div class="container">
+
+    <div class="card">
+      <div class="card-title">Live Vibration Waveform</div>
+      <canvas id="waveform-chart" height="80"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">RMS Vibration Trend</div>
+      <canvas id="trend-chart" height="80"></canvas>
+    </div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Layer 1: Isolation Forest</div>
+        <div class="score-num" id="iso-score">0.00</div>
+        <div class="score-sub" id="iso-label">No anomaly</div>
+        <div class="score-bar"><div class="score-fill" id="iso-bar"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Layer 2: Random Forest</div>
+        <div id="rf-proba">
+          <div class="rf-row"><span>Normal</span><div class="conf-track"><div class="conf-fill green" id="p-normal"></div></div><span id="pct-normal">0%</span></div>
+          <div class="rf-row"><span>Degraded</span><div class="conf-track"><div class="conf-fill amber" id="p-degraded"></div></div><span id="pct-degraded">0%</span></div>
+          <div class="rf-row"><span>Fault</span><div class="conf-track"><div class="conf-fill red" id="p-fault"></div></div><span id="pct-fault">0%</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SHAP + What This Means merged into one card -->
+    <div class="card">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;">
+        <div>
+          <div class="card-title">SHAP: Why did the system make this prediction?</div>
+          <div class="shap-sub" id="root-cause">Waiting for data...</div>
+          <div id="shap-bars"></div>
+          <div class="shap-legend">
+            <span><span class="dot red"></span> Pushes toward predicted class</span>
+            <span><span class="dot blue"></span> Pushes away</span>
+          </div>
+        </div>
+        <div style="border-left:2px solid #eee; padding-left:16px;">
+          <div class="card-title">💡 What This Means</div>
+          <p id="human-explanation" style="margin:6px 0 0; font-size:0.85rem; line-height:1.7; color:#333;">Waiting for data...</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Detailed Alert Log</div>
+      <div id="alert-log-eng"></div>
+      <button class="export-btn" onclick="exportCSV()">⬇ Export as CSV</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- In-page fault alert pop-up -->
+<div id="fault-modal" class="fault-overlay" hidden>
+  <div class="fault-modal" role="alertdialog" aria-labelledby="fault-title">
+    <div class="fault-icon">⚠</div>
+    <div class="fault-title" id="fault-title">Equipment Fault Detected</div>
+    <div class="fault-row"><b>Root cause:</b> <span id="fault-cause"></span></div>
+    <div class="fault-row"><b>Confidence:</b> <span id="fault-conf"></span> &nbsp;·&nbsp; <b>Degradation:</b> <span id="fault-deg"></span></div>
+    <div class="fault-action" id="fault-action"></div>
+    <div class="fault-time" id="fault-time"></div>
+    <div class="fault-btns">
+      <button class="fault-btn secondary" onclick="closeFaultModal(); setView('engineer')">View details</button>
+      <button class="fault-btn" onclick="closeFaultModal()">Acknowledge</button>
+    </div>
+  </div>
+</div>
+
+<!-- Floating chat assistant -->
+<button id="chat-fab" class="chat-fab" onclick="toggleChat()" aria-label="Open maintenance assistant">💬</button>
+<div id="chat-panel" class="chat-panel" hidden>
+  <div class="chat-header">
+    <span>Maintenance Assistant</span>
+    <button class="chat-close" onclick="toggleChat(false)" aria-label="Close chat">✕</button>
+  </div>
+  <div id="chat-messages" class="chat-messages">
+    <div class="chat-msg bot">🤖 Hello! I am your maintenance assistant. You can ask me things like "What does this reading mean?" or "What should I do next?"</div>
+  </div>
+  <form class="chat-form" onsubmit="sendChat(event)">
+    <input id="chat-input" type="text" autocomplete="off"
+           placeholder="Ask me anything about the current equipment status...">
+    <button id="chat-send" type="submit">Send</button>
+  </form>
+</div>
+
+<script>
+let alertData = [];
+let alertCount = 0;
+let waveData   = [];
+let deg50Shown = false;
+let deg75Shown = false;
+let rmsHistory = [];
+let timeHistory = [];
+const MAX_WAVE = 50;
+
+const ctx  = document.getElementById('waveform-chart').getContext('2d');
+const wave = new Chart(ctx, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Vibration', data: [], borderColor: '#A32D2D', borderWidth: 1.5, pointRadius: 0, tension: 0.3 }] },
+  options: { animation: false, scales: { x: { display: false }, y: { display: true } }, plugins: { legend: { display: false } } }
+});
+const trendCtx = document.getElementById('trend-chart').getContext('2d');
+const trend = new Chart(trendCtx, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'RMS', data: [], borderColor: '#1F3864', backgroundColor: 'rgba(31,56,100,0.08)', borderWidth: 1.5, pointRadius: 2, fill: true, tension: 0.3 }] },
+  options: { animation: false, scales: { x: { display: false }, y: { display: true } }, plugins: { legend: { display: false } } }
+});
+
+function setView(v) {
+  document.getElementById('view-operator').style.display = v === 'operator' ? 'block' : 'none';
+  document.getElementById('view-engineer').style.display = v === 'engineer' ? 'block' : 'none';
+  document.getElementById('btn-operator').classList.toggle('active', v === 'operator');
+  document.getElementById('btn-engineer').classList.toggle('active', v === 'engineer');
+}
+
+function updateStatus(label, severity, action) {
+  const banner = document.getElementById('status-banner');
+  const icon   = document.getElementById('status-icon');
+  banner.className = 'status-banner ' + (label === 'Fault' ? 'red' : label === 'Degraded' ? 'amber' : 'green');
+  icon.textContent = label === 'Fault' ? '⚠' : label === 'Degraded' ? '!' : '✓';
+  document.getElementById('status-title').textContent = label;
+  document.getElementById('status-msg').textContent =
+    label === 'Fault' ? 'A fault has been detected. Please take immediate action.' :
+    label === 'Degraded' ? 'Equipment is showing signs of degradation. Monitor closely.' : 'Equipment is operating normally. No issues detected.';
+  document.getElementById('action-box').textContent = action;
+  document.getElementById('m-severity').textContent  = severity;
+  document.getElementById('m-severity').style.color  = severity === 'HIGH' ? '#A32D2D' : severity === 'MEDIUM' ? '#BA7517' : '#1B5E20';
+}
+
+const FEAT_TOOLTIPS = {
+  'rms':'Overall vibration energy level','peak':'Maximum vibration spike detected',
+  'kurtosis':'Sharpness of vibration — high value indicates impacts','skewness':'Asymmetry of the vibration signal',
+  'std':'Variability of vibration over time','crest_factor':'Ratio of peak to average — detects early faults',
+  'dom_freq':'Dominant frequency in the signal','spec_centroid':'Where most frequency energy is concentrated',
+  'spec_energy':'Total energy across all frequencies','band_low':'Energy in low frequency range (0-10 Hz)',
+  'band_mid':'Energy in mid frequency range (10-50 Hz)'
+};
+
+function updateShap(shapData, rootCause) {
+  document.getElementById('root-cause').textContent = rootCause;
+  const container = document.getElementById('shap-bars');
+  container.innerHTML = '';
+  shapData.forEach(item => {
+    const isPos = item.value >= 0;
+    const pct = Math.min(Math.abs(item.value) * 300, 100);
+    const tooltip = FEAT_TOOLTIPS[item.feature] || item.feature;
+    container.innerHTML += `
+      <div class="shap-row" title="${tooltip}">
+        <span class="shap-label" title="${tooltip}">${item.feature} ℹ</span>
+        <div class="shap-bar-wrap"><div class="${isPos ? 'shap-pos' : 'shap-neg'}" style="width:${pct}%"></div></div>
+        <span class="shap-val ${isPos ? 'red-txt' : 'blue-txt'}">${item.value > 0 ? '+' : ''}${item.value}</span>
+        <span class="cause-tag ${isPos ? 'ct-pos' : 'ct-neg'}">${isPos ? 'cause' : 'suppressed'}</span>
+      </div>`;
+  });
+}
+
+function updateLog(log) {
+  alertData = log;
+  const opLog = document.getElementById('alert-log-op');
+  opLog.innerHTML = log.slice(0,5).map(a => `
+    <div class="log-row">
+      <span class="log-time">${a.time}</span>
+      <span class="badge ${a.label.toLowerCase()}">${a.label}</span>
+      <span class="log-msg">${a.action}</span>
+      <span style="font-size:10px;color:#bbb;flex-shrink:0;">just now</span>
+    </div>`).join('') || '<div style="color:#aaa;font-size:12px;padding:8px 0;">No alerts yet</div>';
+  const engLog = document.getElementById('alert-log-eng');
+  engLog.innerHTML = log.slice(0,5).map(a => `
+    <div class="log-row">
+      <span class="log-time">${a.time}</span>
+      <span class="badge ${a.label.toLowerCase()}">${a.label} ${a.confidence}%</span>
+      <span class="log-msg">IF: ${a.iso_score}</span>
+    </div>`).join('');
+}
+
+function exportCSV() {
+  const headers = ['Time','Label','Severity','Confidence','ISO Score','Action'];
+  const rows = alertData.map(a => [a.time, a.label, a.severity, a.confidence, a.iso_score, a.action]);
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'alert_log.csv'; a.click();
+}
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission().then(p => { if (p === 'granted' && lastPrediction.label === 'Fault') notifyFault(lastPrediction); });
+}
+let lastLabel = null;
+let lastPrediction = {};
+
+function toggleChat(open) {
+  const panel = document.getElementById('chat-panel');
+  const fab   = document.getElementById('chat-fab');
+  const show  = open ?? panel.hidden;
+  panel.hidden = !show;
+  fab.textContent = show ? '✕' : '💬';
+  fab.setAttribute('aria-label', show ? 'Close maintenance assistant' : 'Open maintenance assistant');
+  if (show) document.getElementById('chat-input').focus();
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('chat-panel').hidden) toggleChat(false); });
+
+function addChatMsg(text, who) {
+  const box = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + who;
+  div.textContent = (who === 'bot' ? '🤖 ' : '') + text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+async function sendChat(e) {
+  e.preventDefault();
+  const input = document.getElementById('chat-input');
+  const btn   = document.getElementById('chat-send');
+  const msg   = input.value.trim();
+  if (!msg || btn.disabled) return;
+  addChatMsg(msg, 'user');
+  input.value  = '';
+  btn.disabled = true;
+  const pending = addChatMsg('Thinking...', 'bot pending');
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ message: msg, label: lastPrediction.label, confidence: lastPrediction.confidence, root_cause: lastPrediction.root_cause, shap: lastPrediction.shap })
+    });
+    const data = await res.json();
+    pending.textContent = '🤖 ' + (data.response || data.error || 'No response.');
+    pending.className   = 'chat-msg bot' + (data.error ? ' error' : '');
+  } catch (err) {
+    pending.textContent = '🤖 Could not reach the server.';
+    pending.className   = 'chat-msg bot error';
+  } finally { btn.disabled = false; input.focus(); }
+}
+
+function showFaultModal(data) {
+  document.getElementById('fault-cause').textContent  = data.root_cause;
+  document.getElementById('fault-conf').textContent   = data.confidence + '%';
+  document.getElementById('fault-deg').textContent    = (data.degradation ?? '--') + '%';
+  document.getElementById('fault-action').textContent = data.action;
+  document.getElementById('fault-time').textContent   = 'Detected at ' + new Date().toLocaleTimeString();
+  document.getElementById('fault-modal').hidden = false;
+}
+function closeFaultModal() { document.getElementById('fault-modal').hidden = true; }
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFaultModal(); });
+
+function notifyFault(data) {
+  showFaultModal(data);
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  new Notification('⚠️ Fault Detected!', { body: `${data.root_cause}\nConfidence: ${data.confidence}%`, tag: 'pdm-fault', requireInteraction: true });
+}
+
+async function poll() {
+  try {
+    const res  = await fetch('/predict');
+    const data = await res.json();
+    lastPrediction = data;
+
+    document.getElementById('m-time').textContent = new Date().toLocaleTimeString();
+
+    waveData.push(data.raw_value);
+    if (waveData.length > MAX_WAVE) waveData.shift();
+    wave.data.labels = waveData.map((_, i) => i);
+    wave.data.datasets[0].data = waveData;
+    wave.update();
+
+    rmsHistory.push(data.degradation ?? 0);
+    timeHistory.push(new Date().toLocaleTimeString());
+    if (rmsHistory.length > 30) { rmsHistory.shift(); timeHistory.shift(); }
+    trend.data.labels = timeHistory;
+    trend.data.datasets[0].data = rmsHistory;
+    trend.update();
+
+    updateStatus(data.label, data.severity, data.action);
+
+    if (data.label === 'Fault' && lastLabel !== 'Fault') notifyFault(data);
+    lastLabel = data.label;
+
+    const iso = data.iso_score;
+    document.getElementById('iso-score').textContent = iso;
+    document.getElementById('iso-label').textContent = data.is_anomaly ? '⚠ Anomaly detected' : '✓ Normal';
+    document.getElementById('iso-label').style.color = data.is_anomaly ? '#A32D2D' : '#1B5E20';
+    const barPct = Math.min(Math.abs(iso) * 200, 100);
+    document.getElementById('iso-bar').style.width      = barPct + '%';
+    document.getElementById('iso-bar').style.background = data.is_anomaly ? '#A32D2D' : '#1D9E75';
+
+    document.getElementById('p-normal').style.width     = data.rf_proba.Normal + '%';
+    document.getElementById('p-degraded').style.width   = data.rf_proba.Degraded + '%';
+    document.getElementById('p-fault').style.width      = data.rf_proba.Fault + '%';
+    document.getElementById('pct-normal').textContent   = data.rf_proba.Normal + '%';
+    document.getElementById('pct-degraded').textContent = data.rf_proba.Degraded + '%';
+    document.getElementById('pct-fault').textContent    = data.rf_proba.Fault + '%';
+
+    const deg = data.degradation ?? 0;
+    const degColor = deg >= 70 ? '#A32D2D' : deg >= 35 ? '#BA7517' : '#1D9E75';
+    document.getElementById('degr-val').textContent       = deg + '%';
+    document.getElementById('degr-val').style.color       = degColor;
+    document.getElementById('degr-fill').style.width      = deg + '%';
+    document.getElementById('degr-fill').style.background = degColor;
+
+    const warningBanner = document.getElementById('deg-warning-banner');
+    if (deg >= 75) {
+      warningBanner.style.display = 'block'; warningBanner.style.background = '#FCEBEB'; warningBanner.style.color = '#791F1F';
+      warningBanner.textContent = '🔴 Critical Alert: Equipment degradation has reached ' + deg + '%. Please stop the machine immediately and contact your maintenance engineer.';
+    } else if (deg >= 50) {
+      warningBanner.style.display = 'block'; warningBanner.style.background = '#FAEEDA'; warningBanner.style.color = '#633806';
+      warningBanner.textContent = '⚠ Warning: Equipment degradation is at ' + deg + '%. Please schedule a maintenance check as soon as possible.';
+    } else { warningBanner.style.display = 'none'; }
+
+    updateShap(data.shap, data.root_cause);
+    document.getElementById('human-explanation').textContent = data.human_explanation || '—';
+
+    if (data.label !== 'Normal') alertCount++;
+    document.getElementById('m-alerts').textContent = alertCount;
+    updateLog(data.alert_log);
+    document.getElementById('m-latency').textContent = data.latency_ms + 'ms';
+
+  } catch(e) { console.error(e); }
+}
+
+setInterval(poll, 2000);
+poll();
+</script>
+</body>
+</html>

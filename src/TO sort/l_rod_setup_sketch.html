@@ -1,0 +1,106 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>L-rod sketch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f6f1e4; --line:#4a4237; --line-soft:#a89a7d; --red:#b5482f; --panel-border:#d8cdb0;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --paper:#2b2820; --line:#e9e0cc; --line-soft:#7a715c; --red:#ff8f6b; --panel-border:#453f31; }
+  }
+  :root[data-theme="dark"]{ --paper:#2b2820; --line:#e9e0cc; --line-soft:#7a715c; --red:#ff8f6b; --panel-border:#453f31; }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    padding-block: max(24px, env(safe-area-inset-top, 0px)) max(24px, env(safe-area-inset-bottom, 0px));
+    padding-inline:16px;
+    background:var(--paper);
+    display:flex; justify-content:center;
+    font-family:'Patrick Hand', cursive;
+  }
+  figure{
+    margin:0; max-width:880px; width:100%;
+    border:2px solid var(--panel-border); border-radius:4px;
+    padding:22px 22px 16px;
+    background: repeating-linear-gradient(var(--paper) 0px, var(--paper) 33px, color-mix(in srgb, var(--line-soft) 22%, transparent) 34px);
+  }
+  h1{ font-family:'Caveat', cursive; font-size:30px; font-weight:600; color:var(--line); margin:0 0 2px; transform: rotate(-0.6deg); }
+  .sub{ font-size:16px; color:var(--line-soft); margin:0 0 10px; }
+  svg{ display:block; width:100%; height:auto; }
+  figcaption{ font-size:16px; line-height:1.5; color:var(--line); margin-top:6px; padding-top:8px; }
+  text{ font-family:'Patrick Hand', cursive; fill:var(--line); }
+  .note{ fill:var(--red); }
+  .sketch{ fill:none; stroke:var(--line); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .sketch2{ fill:none; stroke:var(--line); stroke-width:1.4; stroke-linecap:round; stroke-linejoin:round; opacity:0.55; }
+  .hatch{ stroke:var(--line-soft); stroke-width:1; }
+</style>
+</head>
+<body>
+<figure>
+  <h1>L-rod imbalance rig &mdash; sketch</h1>
+  <p class="sub">straight leg chucked, weight bolted to the end of the bent arm</p>
+
+  <svg viewBox="0 0 900 520" role="img" aria-label="Hand sketch of an L-shaped rod: the straight leg is chucked in the 3-jaw chuck along the spindle axis, and the bent perpendicular leg sticks out sideways with a fishing weight bolted to its far end. A dashed arc shows the wide circle the weight sweeps through as the chuck spins.">
+
+    <!-- spindle axis -->
+    <path class="sketch2" d="M40,260 L140,258 L240,262 L340,259" stroke-dasharray="6 6"/>
+    <path class="sketch2" d="M340,259 L420,260" stroke-dasharray="6 6"/>
+    <text x="55" y="240" font-size="15">spindle axis</text>
+
+    <!-- chuck block -->
+    <path class="sketch" d="M55,175 C50,175 48,180 48,185 L46,335 C46,341 50,345 56,345 L175,347 C182,347 186,342 186,335 L188,183 C188,177 183,173 177,174 Z"/>
+    <path class="sketch2" d="M58,177 L182,176 M56,343 L184,345"/>
+    <text x="70" y="265" font-size="16">chuck</text>
+
+    <!-- jaw ticks -->
+    <path class="sketch" d="M188,200 L212,207"/>
+    <path class="sketch" d="M188,260 L214,260"/>
+    <path class="sketch" d="M188,320 L210,314"/>
+
+    <!-- straight leg of L rod (in chuck, along axis) -->
+    <path class="sketch" d="M188,247 C240,244 290,245 340,246 L340,274 C290,275 240,276 188,273 Z"/>
+    <text x="250" y="230" font-size="15">straight leg (chucked)</text>
+
+    <!-- bend + perpendicular leg going up -->
+    <path class="sketch" d="M340,246 C355,246 365,240 366,225 L378,60 C379,54 384,50 390,50 L402,52 C396,52 392,56 391,62 L379,227 C378,244 366,258 340,258 Z"/>
+    <text x="405" y="150" font-size="15" transform="rotate(-90 405 150)">perpendicular leg</text>
+
+    <!-- bolt + weight at far end -->
+    <path class="sketch" d="M378,55 L402,53"/>
+    <path class="sketch" d="M382,45 L398,44 L399,58 L383,59 Z"/>
+    <text x="410" y="35" font-size="15">nut</text>
+
+    <path class="sketch" d="M420,20 C440,17 456,27 456,50 C456,73 440,83 420,80 C412,60 412,40 420,20 Z"/>
+    <path class="hatch" d="M426,26 L450,68 M436,21 L456,58"/>
+    <text x="470" y="45" font-size="15">fishing weight</text>
+    <text x="470" y="63" font-size="14" fill="var(--line-soft)">(own hole + nut,</text>
+    <text x="470" y="81" font-size="14" fill="var(--line-soft)">no tape here)</text>
+
+    <!-- swept circle the weight traces -->
+    <path class="sketch2" d="M438,50 C438,-60 130,-60 130,50 C130,160 438,160 438,50" stroke-dasharray="4 6" transform="translate(0,150)"/>
+    <text x="180" y="330" class="note" font-size="18" transform="rotate(-1 180 330)">weight sweeps this wide circle &mdash;</text>
+    <text x="180" y="352" class="note" font-size="18" transform="rotate(-1 180 352)">check it clears the guard!</text>
+
+    <!-- rotation arrow -->
+    <path class="sketch" d="M120,150 C150,125 200,127 225,155"/>
+    <path class="sketch" d="M216,146 L225,155 L214,163"/>
+    <text x="100" y="120" font-size="15">spins this way</text>
+
+    <!-- bottom note -->
+    <text x="60" y="460" class="note" font-size="20" transform="rotate(-1 60 460)">one continuous bent rod,</text>
+    <text x="60" y="485" class="note" font-size="20" transform="rotate(-1 60 485)">no weld at the corner!</text>
+
+  </svg>
+
+  <figcaption>
+    The straight leg sits in the chuck along the spindle axis as usual. The bend puts the second leg out at a radius, and the weight bolts onto its far end through its own hole &mdash; the bend itself creates the offset, no separate collar or standoff needed. The dashed arc is the wide circle that end now sweeps through, which is what to double-check against the guard before spinning it up.
+  </figcaption>
+</figure>
+</body>
+</html>
