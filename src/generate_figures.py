@@ -34,8 +34,9 @@ for name, path in [("CWRU", "outputs/cwru_algorithm_comparison.csv"),
         bars = plt.barh(df['Algorithm'], df['Accuracy(%)'], 
                        color=colors, edgecolor='white')
         for bar, val in zip(bars, df['Accuracy(%)']):
-            plt.text(val - 1, bar.get_y() + bar.get_height()/2,
-                    f'{val}%', va='center', color='white', fontsize=9)
+            plt.text(val - 0.8, bar.get_y() + bar.get_height()/2,
+                    f'{val:.2f}%', va='center', ha='right',
+                    color='white', fontsize=9, fontweight='bold')
         plt.xlabel('Accuracy (%)')
         plt.title(f'{name} — Algorithm Comparison')
         plt.xlim(60, 101)
